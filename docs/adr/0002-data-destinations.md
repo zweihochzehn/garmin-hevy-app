@@ -40,8 +40,13 @@ while the recording is active.
 
 - The user gets a proper Hevy log **and** a Garmin Connect strength activity with
   HR — the best available from each platform.
-- Requires the `Fit` permission (for `ActivityRecording`) and `Sensor` (for live
-  HR) in the manifest.
+- Requires only the `Fit` permission (for `ActivityRecording`). Live HR/calories
+  come from `Toybox.Activity` / `Toybox.ActivityMonitor`, which the SDK's
+  permission table does **not** list — the `Sensor` permission covers
+  `Toybox.Sensor` (ANT+/sensor listeners), which this app never uses. Verified
+  both ways: the compiler hard-errors on a missing permission (it did for `Fit`),
+  and both the build and a runtime check in the simulator show HR rendering fine
+  without `Sensor`.
 - A running activity recording **blocks Garmin sleep tracking**, which forces a
   strict recording lifecycle — see [ADR-0006](0006-end-recording-on-exit.md).
 - HR does not appear in Hevy (API limitation), and structured sets do not appear
