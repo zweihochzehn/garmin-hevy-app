@@ -1,0 +1,4 @@
+<properties>
+    <property id="hevyApiKey" type="string"></property>
+    <property id="privateWorkouts" type="boolean">true</property>
+</properties>

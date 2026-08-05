@@ -1,0 +1,15 @@
+# Connect IQ developer signing key — PRIVATE, never commit
+developer_key
+developer_key.*
+*.der
+*.pem
+
+# Build output
+bin/
+*.prg
+*.iq
+*.debug.xml
+
+# Editor / OS
+.DS_Store
+.vscode/

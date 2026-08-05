@@ -1,0 +1,8 @@
+<settings>
+    <setting propertyKey="@Properties.hevyApiKey" title="@Strings.ApiKeyTitle">
+        <settingConfig type="alphaNumeric" />
+    </setting>
+    <setting propertyKey="@Properties.privateWorkouts" title="@Strings.PrivateTitle">
+        <settingConfig type="boolean" />
+    </setting>
+</settings>

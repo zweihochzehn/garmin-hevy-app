@@ -1,0 +1,60 @@
+<resources>
+    <!-- English is the base language; German overrides live in resources-deu/. -->
+    <string id="AppName">Workouts for Hevy</string>
+    <string id="ApiKeyTitle">Hevy API key</string>
+    <string id="PrivateTitle">Save workouts as private</string>
+
+    <!-- Routine list -->
+    <string id="Loading">Loading routines…</string>
+    <string id="Routines">Routines</string>
+    <string id="Exercises">exercises</string>
+    <string id="NoRoutines">No routines in Hevy</string>
+    <string id="RetryLabel">Retry</string>
+    <string id="ChangeKey">Change key</string>
+    <string id="StartDemo">Start demo</string>
+
+    <!-- Workout flow -->
+    <string id="SetsWord">sets</string>
+    <string id="SetWord">Set</string>
+    <string id="Rest">REST</string>
+    <string id="SkipLabel">Skip</string>
+    <string id="Plus15">+15 s</string>
+    <string id="TargetWord">Target</string>
+    <string id="DurationTag">DURATION</string>
+    <string id="DistanceTag">DISTANCE</string>
+    <string id="NextLabel">Next</string>
+    <string id="RepsLabel">REPS</string>
+
+    <!-- Summary -->
+    <string id="DoneTitle">Done!</string>
+    <string id="SaveLabel">Save</string>
+    <string id="SavingLabel">Saving…</string>
+    <string id="SavedLabel">Saved!</string>
+    <string id="DemoOnly">Demo only</string>
+    <string id="DemoNotSaved">Demo — not saved</string>
+
+    <!-- Errors -->
+    <string id="ErrPhone">Phone not connected</string>
+    <string id="ErrTimeout">Timed out — try again</string>
+    <string id="ErrKey">API key invalid — Hevy Pro?</string>
+    <string id="ErrRate">Too many requests</string>
+    <string id="ErrServer">Hevy unreachable</string>
+    <string id="ErrGeneric">Error</string>
+
+    <!-- Setup -->
+    <string id="SetupNeedKey">API key required</string>
+    <string id="SetupTyping">Enter API key</string>
+    <string id="SetupHint">Key from hevy.com (Pro)</string>
+    <string id="SetupChars">characters</string>
+    <string id="SetupEnterBtn">Enter key</string>
+    <string id="SetupMoreBtn">Keep typing</string>
+    <string id="SetupReset">Reset</string>
+    <string id="SetupInvalid">Invalid — 32 characters needed</string>
+    <string id="SetupNoKb">Keyboard unavailable</string>
+
+    <!-- Pending workout -->
+    <string id="PendingTitle">Unsent workout</string>
+    <string id="SendNow">Send now</string>
+    <string id="DiscardLabel">Discard</string>
+    <string id="DiscardConfirm">Tap again to discard</string>
+</resources>

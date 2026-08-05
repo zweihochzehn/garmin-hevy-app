@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application entry="HevyWorkoutApp"
+                    id="2c4b098fc1724c8ea52dc94ac9c571d2"
+                    launcherIcon="@Drawables.LauncherIcon"
+                    minApiLevel="3.2.0"
+                    name="@Strings.AppName"
+                    type="watch-app">
+        <iq:products>
+            <iq:product id="venu2"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+            <iq:uses-permission id="Fit"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>deu</iq:language>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

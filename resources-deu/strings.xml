@@ -1,0 +1,54 @@
+<resources>
+    <!-- German translations; ids must match resources/strings.xml. -->
+    <string id="AppName">Workouts for Hevy</string>
+    <string id="DurationTag">DAUER</string>
+    <string id="Plus15">+15 s</string>
+    <string id="ApiKeyTitle">Hevy API-Key</string>
+    <string id="PrivateTitle">Workouts privat speichern</string>
+
+    <string id="Loading">Lade Routinen…</string>
+    <string id="Routines">Routinen</string>
+    <string id="Exercises">Übungen</string>
+    <string id="NoRoutines">Keine Routinen in Hevy</string>
+    <string id="RetryLabel">Nochmal</string>
+    <string id="ChangeKey">Key ändern</string>
+    <string id="StartDemo">Demo starten</string>
+
+    <string id="SetsWord">Sätze</string>
+    <string id="SetWord">Satz</string>
+    <string id="Rest">PAUSE</string>
+    <string id="SkipLabel">Weiter</string>
+    <string id="TargetWord">Ziel</string>
+    <string id="DistanceTag">DISTANZ</string>
+    <string id="NextLabel">Weiter</string>
+    <string id="RepsLabel">WDH</string>
+
+    <string id="DoneTitle">Fertig!</string>
+    <string id="SaveLabel">Speichern</string>
+    <string id="SavingLabel">Speichere…</string>
+    <string id="SavedLabel">Gespeichert!</string>
+    <string id="DemoOnly">Nur Demo</string>
+    <string id="DemoNotSaved">Demo – nicht gespeichert</string>
+
+    <string id="ErrPhone">Telefon nicht verbunden</string>
+    <string id="ErrTimeout">Zeitüberschreitung</string>
+    <string id="ErrKey">API-Key ungültig – Hevy Pro?</string>
+    <string id="ErrRate">Zu viele Anfragen</string>
+    <string id="ErrServer">Hevy nicht erreichbar</string>
+    <string id="ErrGeneric">Fehler</string>
+
+    <string id="SetupNeedKey">API-Key benötigt</string>
+    <string id="SetupTyping">API-Key eingeben</string>
+    <string id="SetupHint">Key von hevy.com (Pro)</string>
+    <string id="SetupChars">Zeichen</string>
+    <string id="SetupEnterBtn">Key eingeben</string>
+    <string id="SetupMoreBtn">Weiter tippen</string>
+    <string id="SetupReset">Zurücksetzen</string>
+    <string id="SetupInvalid">Ungültig – 32 Zeichen nötig</string>
+    <string id="SetupNoKb">Tastatur nicht verfügbar</string>
+
+    <string id="PendingTitle">Ungesendetes Workout</string>
+    <string id="SendNow">Jetzt senden</string>
+    <string id="DiscardLabel">Verwerfen</string>
+    <string id="DiscardConfirm">Nochmal tippen zum Verwerfen</string>
+</resources>
