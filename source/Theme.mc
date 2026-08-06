@@ -74,6 +74,22 @@ module Theme {
         dc.drawLine(cx - s * 0.35, cy, cx + s * 0.35, cy + s * 0.55);
     }
 
+    // Downward-pointing chevron (hints at content one swipe below).
+    function drawDownChevron(dc as Graphics.Dc, cx as Number, cy as Number, s as Number, color as Number) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(4);
+        dc.drawLine(cx - s * 0.55, cy - s * 0.35, cx, cy + s * 0.35);
+        dc.drawLine(cx, cy + s * 0.35, cx + s * 0.55, cy - s * 0.35);
+    }
+
+    // Upward-pointing chevron (hints at content one swipe above).
+    function drawUpChevron(dc as Graphics.Dc, cx as Number, cy as Number, s as Number, color as Number) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(4);
+        dc.drawLine(cx - s * 0.55, cy + s * 0.35, cx, cy - s * 0.35);
+        dc.drawLine(cx, cy - s * 0.35, cx + s * 0.55, cy + s * 0.35);
+    }
+
     // Check mark.
     function drawCheck(dc as Graphics.Dc, cx as Number, cy as Number, s as Number, color as Number) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);

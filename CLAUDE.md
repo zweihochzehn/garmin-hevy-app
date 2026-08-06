@@ -72,7 +72,8 @@ PendingView.mc      resend/discard a workout that failed to reach Hevy
 RoutineListView.mc  loads ALL routine pages; loading/error/empty states  (screen 1a)
 ExerciseListView.mc CardMenu of exercises with progress + check marks    (screen 1b)
 CardMenu.mc         dark CustomMenu / CustomMenuItem used by both lists
-SetView.mc          reps/weight steppers + Next (kg or lbs)              (screen 2)
+SetView.mc          two pages: big reps/weight steppers; swipe up for
+                    the Next/Back pills (kg or lbs)                      (screen 2)
 RestView.mc         rest countdown with +15 s / Skip pills                (rest)
 DurationSetView.mc  timer for duration AND distance sets                 (screen 3)
 SummaryView.mc      end screen; POST to Hevy; saves the Garmin recording
