@@ -75,7 +75,8 @@ CardMenu.mc         dark CustomMenu / CustomMenuItem used by both lists
 SetView.mc          two pages: big reps/weight steppers; swipe up for
                     the Next/Back pills (kg or lbs)                      (screen 2)
 RestView.mc         rest countdown with +15 s / Skip pills                (rest)
-DurationSetView.mc  timer for duration AND distance sets                 (screen 3)
+DurationSetView.mc  two pages: timer for duration AND distance sets;
+                    swipe up for the Next/Back pills                     (screen 3)
 SummaryView.mc      end screen; POST to Hevy; saves the Garmin recording
 SampleData.mc       bundled "Chest day" demo routine (fake template ids)
 ```
