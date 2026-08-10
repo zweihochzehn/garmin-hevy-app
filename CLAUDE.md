@@ -106,14 +106,41 @@ SampleData.mc       bundled "Chest day" demo routine (fake template ids)
   `exercise_template_id` and set `type` can all be null/missing from
   API-created routines; `getTextWidthInPixels(null)` crashes mid-workout. Use
   `WorkoutSession.currentTitle()` and the existing null-coalescing patterns.
+- **Planned reps may be a range, not a number.** A set can carry
+  `rep_range: {start, end}` instead of `reps` (common for bodyweight work). Read
+  it via `WorkoutSession.repRange()`; never fall back to an invented default
+  when a range exists. The range is shown next to the set counter ("Set 1 / 3 ·
+  10–15").
+- **Bodyweight exercises have no weight column.** When no set of an exercise
+  plans a `weight_kg` (`WorkoutSession.exerciseHasWeight()`), `SetView` drops
+  the weight box entirely and centres a single wider REPS box — showing "–" in a
+  dead KG field was noise.
+- **"Last time" beats the routine plan.** `History` (source/History.mc) holds the
+  most recent performed sets per exercise and `SetView` pre-fills from it,
+  showing "last 62.5 kg × 9" next to the set counter. Built from ONE
+  `GET /v1/workouts?pageSize=5` at routine start — the per-exercise alternative
+  (`GET /v1/exercise_history/{id}`) would be one request per exercise AND returns
+  the complete unbounded history, which is wrong for a BLE-connected watch.
+  Warm-up sets are skipped; the list is newest-first, so the first workout
+  containing an exercise is the most recent one.
 - **Lists:** subclass `CustomMenu`/`CustomMenuItem`; the item draw hook is
   **`draw(dc)`**, not `onDraw`. Don't reuse parent field names (`mTitle`,
   `mLabel`) — they're protected; prefix subclass fields.
 - **Glyphs:** hearts / play / pause / check / chevron do NOT render in device
   fonts — draw them as shapes (`Theme.drawHeart` etc.).
 - **Layout:** everything is a fraction of `screenWidth/Height`, kept inside the
-  round bezel. Titles use `Theme.bestFont` (auto-shrink) + `Theme.fit`
-  (ellipsis). Give text real spacing — don't cram.
+  round bezel. Give text real spacing — don't cram.
+- **Multi-line text: use `WatchUi.TextArea`** (API 3.1+), not `dc.drawText`.
+  `drawText` is a raw canvas call — it never wraps and never shrinks. `TextArea`
+  wraps to as many lines as fit and picks the largest font from a list you pass
+  in (`:font => [FONT_SMALL, FONT_TINY, FONT_XTINY]`); it is a `Drawable`, so it
+  can be drawn straight inside `CustomMenuItem.draw(dc)`. The list cards use it
+  for exercise/routine titles, which are long user data ("Bench Press
+  (Barbell)") and were previously ellipsized to uselessness. Note a
+  `CustomMenuItem` is drawn **taller when focused**, so cache the TextArea per
+  height and rebuild when `dc.getHeight()` changes.
+  For single-line labels `Theme.bestFont` (auto-shrink) + `Theme.fit` (ellipsis)
+  are still fine.
 - **Recording lifecycle (important):** a running `ActivityRecording` **blocks
   Garmin sleep tracking**. It MUST be ended on every workout exit — done in
   `SummaryView.onShow`, `ExerciseListDelegate.onBack`, and `AppBase.onStop`. See

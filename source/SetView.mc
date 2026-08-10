@@ -18,6 +18,9 @@ class SetView extends WatchUi.View {
     private var mReps as Number;
     private var mVal as Float;          // weight in DISPLAY units (kg or lb)
     private var mOrigKg as Float or Null;  // planned weight, logged verbatim
+    private var mRange as Array or Null;   // planned rep_range [start, end]
+    private var mShowWeight as Boolean;    // exercise plans weight at all
+    private var mLast as Dictionary or Null;  // last session's matching set
     private var mIsLb as Boolean;
     private var mHasWeight as Boolean;  // routine defined a weight
     private var mTouchedW as Boolean;   // user adjusted the weight
@@ -42,17 +45,43 @@ class SetView extends WatchUi.View {
     private var mStrNext as String;
     private var mWeightLabel as String;
     private var mStrReps as String;
+    private var mStrLast as String;
 
     function initialize(session as WorkoutSession) {
         View.initialize();
         mSession = session;
         var set = session.currentSet();
-        mReps = (set != null && set["reps"] != null) ? set["reps"] : 10;
+
+        // What was actually lifted last time, if we know it. That beats the
+        // routine's plan as a starting point — it is the progressive-overload
+        // reference the user works from.
+        mLast = getApp().history.setAt(
+            (session.currentExercise() as Dictionary)["exercise_template_id"],
+            session.setIndex);
+
+        // Reps: last session's, else the plan, else the rep range, else 10.
+        mRange = (set != null) ? WorkoutSession.repRange(set) : null;
+        if (mLast != null && mLast[:r] != null) {
+            mReps = mLast[:r];
+        } else if (set != null && set["reps"] != null) {
+            mReps = set["reps"];
+        } else if (mRange != null && mRange[0] != null) {
+            mReps = mRange[0];
+        } else if (mRange != null && mRange[1] != null) {
+            mReps = mRange[1];
+        } else {
+            mReps = 10;
+        }
 
         var d = System.getDeviceSettings();
         mIsLb = d.weightUnits == System.UNIT_STATUTE;
         mWeightLabel = mIsLb ? "LBS" : "KG";
+        // Bodyweight exercise (no set plans a weight, and none was lifted last
+        // time either) -> no weight column at all.
+        var lastKg = (mLast != null && mLast[:w] != null) ? mLast[:w].toFloat() : null;
+        mShowWeight = session.exerciseHasWeight(session.exIndex) || lastKg != null;
         var kg = (set != null && set["weight_kg"] != null) ? set["weight_kg"].toFloat() : null;
+        if (lastKg != null) { kg = lastKg; }   // last session wins as the target
         mHasWeight = kg != null;
         mOrigKg = kg;
         mTouchedW = false;
@@ -66,9 +95,16 @@ class SetView extends WatchUi.View {
 
         mW = d.screenWidth;
         mH = d.screenHeight;
-        mBoxHalfW = (mW * 0.175).toNumber();
-        mRepsCx = (mW * 0.29).toNumber();
-        mKgCx = (mW * 0.71).toNumber();
+        if (mShowWeight) {
+            mBoxHalfW = (mW * 0.175).toNumber();
+            mRepsCx = (mW * 0.29).toNumber();
+            mKgCx = (mW * 0.71).toNumber();
+        } else {
+            // Single, wider box centred on screen.
+            mBoxHalfW = (mW * 0.22).toNumber();
+            mRepsCx = (mW * 0.5).toNumber();
+            mKgCx = -1000;                          // off-screen: never hit
+        }
         mBoxTop = (mH * 0.36).toNumber();
         mBoxBot = (mH * 0.70).toNumber();
         mThird = (mBoxBot - mBoxTop) / 3;
@@ -82,6 +118,7 @@ class SetView extends WatchUi.View {
         mStrSet = WatchUi.loadResource(Rez.Strings.SetWord) as String;
         mStrNext = WatchUi.loadResource(Rez.Strings.NextLabel) as String;
         mStrReps = WatchUi.loadResource(Rez.Strings.RepsLabel) as String;
+        mStrLast = WatchUi.loadResource(Rez.Strings.LastLabel) as String;
     }
 
     function quantize(v as Float, step as Float) as Float {
@@ -181,20 +218,46 @@ class SetView extends WatchUi.View {
         var exTitle = mSession.currentTitle();
         var tf = Theme.bestFont(dc, exTitle, maxW,
             [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
+        // Vertically centred: the auto-picked font varies in height, and a
+        // top-anchored title would grow down into the counter line.
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.155).toNumber(), tf, Theme.fit(dc, exTitle, maxW, tf),
-            Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, (mH * 0.16).toNumber(), tf, Theme.fit(dc, exTitle, maxW, tf),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        // Set counter, plus a reference: what was lifted last time (preferred,
+        // since the boxes are pre-filled from it) or the planned rep range.
+        var counter = mStrSet + " " + (mSession.setIndex + 1) + " / " + mSession.setCount(mSession.exIndex);
+        if (mLast != null) {
+            var ref = mStrLast + " ";
+            if (mLast[:w] != null) {
+                var lw = mIsLb ? (mLast[:w].toFloat() * LB_PER_KG) : mLast[:w].toFloat();
+                ref += Theme.weight(mIsLb ? quantize(lw, 0.5) : lw) + " " + mWeightLabel;
+                if (mLast[:r] != null) { ref += " × " + mLast[:r]; }
+            } else if (mLast[:r] != null) {
+                ref += mLast[:r] + " " + mStrReps;
+            }
+            counter = counter + "  ·  " + ref;
+        } else if (mRange != null) {
+            var lo = mRange[0];
+            var hi = mRange[1];
+            var rangeTxt = null;
+            if (lo != null && hi != null) { rangeTxt = lo + "–" + hi; }
+            else if (lo != null) { rangeTxt = lo + "+"; }
+            else if (hi != null) { rangeTxt = "≤" + hi; }
+            if (rangeTxt != null) { counter = counter + "  ·  " + rangeTxt; }
+        }
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.22).toNumber(), Graphics.FONT_XTINY,
-            mStrSet + " " + (mSession.setIndex + 1) + " / " + mSession.setCount(mSession.exIndex),
-            Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, (mH * 0.245).toNumber(), Graphics.FONT_XTINY, counter,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         // Field labels just above the boxes.
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
         dc.drawText(mRepsCx, (mH * 0.315).toNumber(), Graphics.FONT_XTINY, mStrReps, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(mKgCx, (mH * 0.315).toNumber(), Graphics.FONT_XTINY, mWeightLabel, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         drawBox(dc, mRepsCx, mReps.format("%d"));
-        drawBox(dc, mKgCx, (mHasWeight || mTouchedW) ? Theme.weight(mVal) : "–");
+        if (mShowWeight) {
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(mKgCx, (mH * 0.315).toNumber(), Graphics.FONT_XTINY, mWeightLabel, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            drawBox(dc, mKgCx, (mHasWeight || mTouchedW) ? Theme.weight(mVal) : "–");
+        }
 
         // Back circle.
         dc.setColor(Theme.BOX, Graphics.COLOR_TRANSPARENT);

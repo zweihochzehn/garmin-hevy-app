@@ -105,6 +105,22 @@ module Theme {
         dc.drawText(hx + heartW + 5, y, Graphics.FONT_XTINY, hrs, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
+    // Prominent heart-rate readout: heart glyph + large number, centred as one
+    // group. Used where pulse is a primary metric (rowing, planks, rest).
+    function drawHeartRate(dc as Graphics.Dc, cx as Number, cy as Number,
+                           hr as Number or Null, font as Graphics.FontType) as Void {
+        if (hr == null) { return; }
+        var txt = hr.format("%d");
+        var tw = dc.getTextWidthInPixels(txt, font);
+        var hs = 22;                       // heart size
+        var gap = 10;
+        var x = cx - (hs + gap + tw) / 2;
+        drawHeart(dc, x + hs / 2, cy, hs, RED);
+        dc.setColor(FG, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + hs + gap, cy, font, txt,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
     // Filled circle button with a centered glyph string.
     function circleButton(dc as Graphics.Dc, cx as Number, cy as Number, r as Number,
                           fill as Number, fg as Number, glyph as String, font as Graphics.FontType) as Void {

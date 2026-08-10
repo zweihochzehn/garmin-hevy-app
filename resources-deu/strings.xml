@@ -22,6 +22,7 @@
     <string id="DistanceTag">DISTANZ</string>
     <string id="NextLabel">Weiter</string>
     <string id="RepsLabel">WDH</string>
+    <string id="LastLabel">zuletzt</string>
 
     <string id="DoneTitle">Fertig!</string>
     <string id="SaveLabel">Speichern</string>

@@ -2,6 +2,7 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Application;
 import Toybox.WatchUi;
+import Toybox.System;
 
 // Thin wrapper around the Hevy public REST API (https://api.hevyapp.com/docs/).
 // Auth is a per-user API key sent in the "api-key" header. Requires Hevy Pro.
@@ -95,9 +96,50 @@ module HevyApi {
         return code == 401 || code == 403;
     }
 
+    // The watch's language as an HTTP language tag, so the server can localize
+    // if it ever supports content negotiation. Hevy's own clients show
+    // translated exercise names, but the public v1 API returns English today —
+    // sending the header costs nothing and starts working the day they add it.
+    function acceptLanguage() as String {
+        var l = System.getDeviceSettings().systemLanguage;
+        if (l == System.LANGUAGE_DEU) { return "de"; }
+        if (l == System.LANGUAGE_SPA) { return "es"; }
+        if (l == System.LANGUAGE_FRE) { return "fr"; }
+        if (l == System.LANGUAGE_ITA) { return "it"; }
+        if (l == System.LANGUAGE_POR) { return "pt"; }
+        if (l == System.LANGUAGE_JPN) { return "ja"; }
+        if (l == System.LANGUAGE_KOR) { return "ko"; }
+        if (l == System.LANGUAGE_RUS) { return "ru"; }
+        if (l == System.LANGUAGE_TUR) { return "tr"; }
+        if (l == System.LANGUAGE_CHS) { return "zh-CN"; }
+        if (l == System.LANGUAGE_CHT) { return "zh-TW"; }
+        return "en";
+    }
+
     // GET /v1/routines (one page) — returns routines with exercises and sets
     // inline plus page/page_count. callback(code as Number, data as Dictionary or Null)
     function getRoutines(page as Number, callback as Method) as Void {
+        var lang = acceptLanguage();
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :headers => {
+                "api-key" => apiKey(),
+                "Accept" => "application/json",
+                "Accept-Language" => lang + ", en;q=0.8"
+            },
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+        };
+        Communications.makeWebRequest(BASE + "/routines",
+            { "page" => page, "pageSize" => PAGE_SIZE }, options, callback);
+    }
+
+    // GET /v1/workouts — the most recent workouts including every exercise and
+    // set. Used to show "what did I lift last time" (see History). Kept small
+    // on purpose: a big page would be a slow BLE transfer and can exceed the
+    // response size limit.
+    const HISTORY_WORKOUTS = 5;
+
+    function getRecentWorkouts(callback as Method) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_GET,
             :headers => {
@@ -106,8 +148,8 @@ module HevyApi {
             },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
-        Communications.makeWebRequest(BASE + "/routines",
-            { "page" => page, "pageSize" => PAGE_SIZE }, options, callback);
+        Communications.makeWebRequest(BASE + "/workouts",
+            { "page" => 1, "pageSize" => HISTORY_WORKOUTS }, options, callback);
     }
 
     // POST /v1/workouts — logs a completed workout.

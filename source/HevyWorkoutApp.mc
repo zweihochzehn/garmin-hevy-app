@@ -10,11 +10,14 @@ class HevyWorkoutApp extends Application.AppBase {
     // The workout in progress, if any. Held here so onStop() can persist its
     // logged sets — the views are gone by then.
     public var session as WorkoutSession or Null;
+    // Last performed sets per exercise, fetched once when a routine starts.
+    public var history as History;
 
     function initialize() {
         AppBase.initialize();
         recorder = new Recorder();
         session = null;
+        history = new History();
     }
 
     // Safety net on app exit: keep the logged sets for a later resend, save the

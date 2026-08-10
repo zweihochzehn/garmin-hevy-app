@@ -221,6 +221,14 @@ class RoutineMenuDelegate extends WatchUi.Menu2InputDelegate {
         mRoutines = routines;
     }
 
+    // History arrived (or failed) — a failure just means no "last time" hints.
+    function onHistory(code as Number, data as Dictionary or Null) as Void {
+        if (code == 200) {
+            getApp().history.ingest(data);
+            WatchUi.requestUpdate();
+        }
+    }
+
     function onSelect(item as WatchUi.MenuItem) as Void {
         var idx = item.getId() as Number;
         var r = mRoutines[idx] as Dictionary;
@@ -234,6 +242,12 @@ class RoutineMenuDelegate extends WatchUi.Menu2InputDelegate {
         // Demo runs never touch the user's Garmin history.
         if (!session.isDemo()) {
             getApp().recorder.start(session.title);
+            // Fetch "what did I lift last time" in the background — the set
+            // screens pick it up as soon as it lands.
+            getApp().history.clear();
+            if (HevyApi.hasKey()) {
+                HevyApi.getRecentWorkouts(method(:onHistory));
+            }
         }
         WatchUi.pushView(
             new ExerciseListView(session),

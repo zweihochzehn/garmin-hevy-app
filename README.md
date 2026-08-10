@@ -27,6 +27,9 @@ finished workout back.
 - 📋 **Your routines, live** from Hevy — all pages, not just the first ten.
 - ✅ **Exercise list** with per-exercise set progress and completion checks.
 - 🔢 **Guided sets** — tap to adjust reps and weight, confirm, move on.
+- 📈 **"Last time" as your target** — the app pulls your previous session for each
+  exercise and pre-fills the weight and reps you actually managed, so you can
+  push from there instead of guessing.
 - ⏱️ **Rest countdown** (+15 s) and a **timer** for duration and distance sets.
 - 💾 **Logs back to Hevy** — and if the phone is away, the workout is kept and
   offered for resending on the next launch. Nothing is lost.
