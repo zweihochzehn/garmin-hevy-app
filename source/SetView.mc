@@ -57,7 +57,8 @@ class SetView extends WatchUi.View {
         View.initialize();
         mSession = session;
         var set = session.currentSet();
-        mReps = (set != null && set["reps"] != null) ? set["reps"] : 10;
+        var planned = (set != null) ? WorkoutSession.plannedReps(set) : null;
+        mReps = (planned != null) ? planned : 10;
 
         var d = System.getDeviceSettings();
         mIsLb = d.weightUnits == System.UNIT_STATUTE;

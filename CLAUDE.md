@@ -144,7 +144,11 @@ SampleData.mc       bundled "Chest day" demo routine (fake template ids)
   **pageSize is capped at 10** — page until `page_count` (we cap at
   `HevyApi.MAX_PAGES`). A duration set has `duration_seconds` and null `reps`; a
   distance set has `distance_meters` and null `reps`; bodyweight sets have null
-  `weight_kg`. Exercises may legitimately have `sets: []` — guard before indexing.
+  `weight_kg`. Routines built with a rep RANGE ("8–12") carry
+  `rep_range: { start, end }` with `reps: null` — use
+  `WorkoutSession.plannedReps(set)` instead of reading `reps` directly, both for
+  the screen-type decision and for the stepper's initial value. Exercises may
+  legitimately have `sets: []` — guard before indexing.
 - `POST /v1/workouts` body: `{ workout: { title, start_time, end_time,
   is_private, exercises: [ { exercise_template_id, sets: [ { type, weight_kg,
   reps, duration_seconds, distance_meters } ] } ] } }`. Hevy has **no heart-rate
