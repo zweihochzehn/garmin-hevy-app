@@ -72,9 +72,11 @@ PendingView.mc      resend/discard a workout that failed to reach Hevy
 RoutineListView.mc  loads ALL routine pages; loading/error/empty states  (screen 1a)
 ExerciseListView.mc CardMenu of exercises with progress + check marks    (screen 1b)
 CardMenu.mc         dark CustomMenu / CustomMenuItem used by both lists
-SetView.mc          reps/weight steppers + Next (kg or lbs)              (screen 2)
+SetView.mc          two pages: big reps/weight steppers; swipe up for
+                    the Next/Back pills (kg or lbs)                      (screen 2)
 RestView.mc         rest countdown with +15 s / Skip pills                (rest)
-DurationSetView.mc  timer for duration AND distance sets                 (screen 3)
+DurationSetView.mc  two pages: timer for duration AND distance sets;
+                    swipe up for the Next/Back pills                     (screen 3)
 SummaryView.mc      end screen; POST to Hevy; saves the Garmin recording
 SampleData.mc       bundled "Chest day" demo routine (fake template ids)
 ```
@@ -169,7 +171,11 @@ SampleData.mc       bundled "Chest day" demo routine (fake template ids)
   **pageSize is capped at 10** — page until `page_count` (we cap at
   `HevyApi.MAX_PAGES`). A duration set has `duration_seconds` and null `reps`; a
   distance set has `distance_meters` and null `reps`; bodyweight sets have null
-  `weight_kg`. Exercises may legitimately have `sets: []` — guard before indexing.
+  `weight_kg`. Routines built with a rep RANGE ("8–12") carry
+  `rep_range: { start, end }` with `reps: null` — use
+  `WorkoutSession.plannedReps(set)` instead of reading `reps` directly, both for
+  the screen-type decision and for the stepper's initial value. Exercises may
+  legitimately have `sets: []` — guard before indexing.
 - `POST /v1/workouts` body: `{ workout: { title, start_time, end_time,
   is_private, exercises: [ { exercise_template_id, sets: [ { type, weight_kg,
   reps, duration_seconds, distance_meters } ] } ] } }`. Hevy has **no heart-rate

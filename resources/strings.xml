@@ -23,6 +23,7 @@
     <string id="DurationTag">DURATION</string>
     <string id="DistanceTag">DISTANCE</string>
     <string id="NextLabel">Next</string>
+    <string id="BackLabel">Back</string>
     <string id="RepsLabel">REPS</string>
     <string id="LastLabel">last</string>
 

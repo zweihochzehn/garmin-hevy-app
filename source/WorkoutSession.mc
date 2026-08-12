@@ -90,8 +90,25 @@ class WorkoutSession {
         return t;
     }
 
+    // Planned reps for a set, or null. Hevy's routine editor stores rep
+    // RANGES ("8-12") as rep_range {start, end} with reps = null, so a set
+    // counts as a rep set when either field is present; the range's lower
+    // bound is the planned value.
+    static function plannedReps(set as Dictionary) as Number or Null {
+        var r = set["reps"];
+        if (r != null) { return r; }
+        var rr = set["rep_range"];
+        if (rr instanceof Lang.Dictionary) {
+            var s = rr["start"];
+            if (s != null) { return s.toNumber(); }
+            var e = rr["end"];
+            if (e != null) { return e.toNumber(); }
+        }
+        return null;
+    }
+
     static function isDurationSet(set as Dictionary) as Boolean {
-        return set["duration_seconds"] != null && set["reps"] == null;
+        return set["duration_seconds"] != null && plannedReps(set) == null;
     }
 
     // Planned reps can arrive either as a fixed `reps` value or as a
@@ -121,7 +138,7 @@ class WorkoutSession {
     // Distance sets (e.g. Running, Farmers Walk) have distance_meters and no
     // reps; they run on the timer screen and the distance is passed through.
     static function isDistanceSet(set as Dictionary) as Boolean {
-        return set["distance_meters"] != null && set["reps"] == null;
+        return set["distance_meters"] != null && plannedReps(set) == null;
     }
 
     // First incomplete set in routine order, or null when all are done.
