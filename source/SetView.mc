@@ -13,8 +13,9 @@ import Toybox.Timer;
 //   page 1 — large Next and Back pills, stacked with plenty of air between
 //            them (swipe down or tap the top chevron to return).
 // Weight is shown in the device unit (kg or lbs) and always logged to Hevy in
-// kg; bodyweight sets (null weight) stay weight-less unless the user touches
-// the stepper.
+// kg. Bodyweight sets (null weight_kg) get a reps-only layout and never log a
+// weight; weight_kg 0 counts as a weighted exercise (no weight entered yet)
+// and keeps its stepper.
 class SetView extends WatchUi.View {
     const LB_PER_KG = 2.2046226f;
 
@@ -81,8 +82,17 @@ class SetView extends WatchUi.View {
         mRowX0 = (mW * 0.10).toNumber();
         mRowX1 = (mW * 0.90).toNumber();
         mZoneW = ((mRowX1 - mRowX0) * 0.30).toNumber();
-        mRepsTop = (mH * 0.29).toNumber();
-        mRepsBot = (mH * 0.52).toNumber();
+        if (mHasWeight) {
+            mRepsTop = (mH * 0.29).toNumber();
+            mRepsBot = (mH * 0.52).toNumber();
+        } else {
+            // Bodyweight exercise (weight_kg null in the routine): no weight
+            // row at all, just one extra-large centered reps row. Note the
+            // distinction: weight_kg 0 is a weighted exercise with no weight
+            // entered yet and keeps its stepper.
+            mRepsTop = (mH * 0.34).toNumber();
+            mRepsBot = (mH * 0.64).toNumber();
+        }
         mWgtTop = (mH * 0.57).toNumber();
         mWgtBot = (mH * 0.80).toNumber();
         mHintY = (mH * 0.84).toNumber();
@@ -164,7 +174,7 @@ class SetView extends WatchUi.View {
         if (mPage == 0) {
             if (y >= mHintY) { return :showNav; }
             var inReps = y >= mRepsTop - 8 && y <= mRepsBot + 8;
-            var inWgt = y >= mWgtTop - 8 && y <= mWgtBot + 8;
+            var inWgt = mHasWeight && y >= mWgtTop - 8 && y <= mWgtBot + 8;
             if (inReps || inWgt) {
                 if (x <= mRowX0 + mZoneW) { return inReps ? :repsDown : :kgDown; }
                 if (x >= mRowX1 - mZoneW) { return inReps ? :repsUp : :kgUp; }
@@ -222,8 +232,9 @@ class SetView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER);
 
         drawRow(dc, mRepsTop, mRepsBot, mStrReps, mReps.format("%d"));
-        drawRow(dc, mWgtTop, mWgtBot, mWeightLabel,
-            (mHasWeight || mTouchedW) ? Theme.weight(mVal) : "–");
+        if (mHasWeight) {
+            drawRow(dc, mWgtTop, mWgtBot, mWeightLabel, Theme.weight(mVal));
+        }
 
         // Hint: Next/Back live one swipe below.
         Theme.drawDownChevron(dc, cx, (mH * 0.90).toNumber(), (mW * 0.06).toNumber(), Theme.MUTED);

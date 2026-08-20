@@ -94,11 +94,12 @@ SampleData.mc       bundled "Chest day" demo routine (fake template ids)
   tracking. Applies to Set/Rest/Duration delegates.
 - **Every drawn control needs a matching hit zone, and vice versa** — no
   invisible tap targets (that bit us on the setup screen's error state).
-- **Never invent set data.** A null `weight_kg` stays null unless the user
-  touches the stepper; an untouched weight is logged verbatim from the routine
-  (no kg→lb→kg round trip); distance sets carry `distance_meters` through and go
-  to the timer screen. What the screen shows is exactly what gets logged.
-  ADR-0009.
+- **Never invent set data.** A null `weight_kg` stays null — such bodyweight
+  sets get a reps-only screen (no weight stepper); `weight_kg: 0` is a weighted
+  exercise with no weight entered yet and keeps its stepper. An untouched
+  weight is logged verbatim from the routine (no kg→lb→kg round trip); distance
+  sets carry `distance_meters` through and go to the timer screen. What the
+  screen shows is exactly what gets logged. ADR-0009.
 - **A finished set is never only in memory.** Anything that ends a workout must
   keep the logged sets: the summary persists them (`HevyApi.savePending`, a
   queue keyed by `start_time`), backing out of the exercise list routes to the
