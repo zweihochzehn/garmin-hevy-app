@@ -3,6 +3,7 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Timer;
+import Toybox.Attention;
 
 // Screen 3: a time-based set (Plank) or distance-based set (Running, Farmers
 // Walk), split into two swipe pages like SetView so the controls stay big and
@@ -11,8 +12,10 @@ import Toybox.Timer;
 //            the bottom hints at the second page (swipe up or tap it).
 //   page 1 — large Next and Back pills plus a summary of what gets logged
 //            (swipe down or tap the top chevron to return).
-// Duration sets count toward the planned duration; distance sets show the
-// planned distance and pass it through to the Hevy log unchanged.
+// The stopwatch does NOT stop at the planned duration — it buzzes once and
+// keeps counting, so going past the plan is possible; the elapsed value the
+// user pauses/confirms at is what gets logged. Distance sets show the planned
+// distance and pass it through to the Hevy log unchanged.
 class DurationSetView extends WatchUi.View {
     private var mSession as WorkoutSession;
     private var mTarget as Number;          // planned duration (0 = none)
@@ -90,7 +93,12 @@ class DurationSetView extends WatchUi.View {
     function onTick() as Void {
         if (mRunning) {
             mElapsed += 1;
-            if (mTarget > 0 && mElapsed >= mTarget) { mRunning = false; }
+            // Reaching the planned duration only buzzes — the timer keeps
+            // running so the user can go past the plan; whatever they pause
+            // (or confirm) at is what gets logged.
+            if (mTarget > 0 && mElapsed == mTarget && (Attention has :vibrate)) {
+                Attention.vibrate([new Attention.VibeProfile(80, 300)]);
+            }
         }
         WatchUi.requestUpdate();
     }
@@ -187,7 +195,9 @@ class DurationSetView extends WatchUi.View {
         dc.setColor(mRunning ? Theme.GREEN : Theme.LINE, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawRoundedRectangle(bx, by, boxW, boxH, 14);
-        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        // Green once the planned duration is met — the timer keeps counting.
+        dc.setColor((mTarget > 0 && mElapsed >= mTarget) ? Theme.GREEN : Theme.FG,
+            Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, by + boxH / 2, Graphics.FONT_NUMBER_MEDIUM, Theme.mmss(mElapsed),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
