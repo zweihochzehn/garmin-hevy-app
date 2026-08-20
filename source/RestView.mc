@@ -3,6 +3,7 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Timer;
+import Toybox.Attention;
 
 // Rest screen shown between sets: a countdown that auto-advances to the next
 // set at zero, an explicit "+15 s" pill, and a skip pill. (Adding time is a
@@ -57,6 +58,13 @@ class RestView extends WatchUi.View {
     function onTick() as Void {
         mRemaining -= 1;
         if (mRemaining <= 0) {
+            // One short buzz so the user notices the rest is over without
+            // watching the screen. Only on the natural end of the countdown —
+            // a manual skip needs no cue. (Guarded: not every device/setting
+            // allows vibration.)
+            if (Attention has :vibrate) {
+                Attention.vibrate([new Attention.VibeProfile(80, 300)]);
+            }
             skip();
         } else {
             WatchUi.requestUpdate();
