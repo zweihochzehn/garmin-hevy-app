@@ -12,28 +12,32 @@ import Toybox.Timer;
 //            the second page (swipe up or tap it).
 //   page 1 — large Next and Back pills, stacked with plenty of air between
 //            them (swipe down or tap the top chevron to return).
+// The steppers are pre-filled from the last session's matching set when the
+// History has one (progressive-overload reference, shown in the counter
+// line), else from the routine's plan / rep range.
 // Weight is shown in the device unit (kg or lbs) and always logged to Hevy in
-// kg; bodyweight sets (null weight) stay weight-less unless the user touches
-// the stepper.
+// kg. Bodyweight exercises (no set plans a weight, none lifted last time) get
+// a reps-only layout and never log a weight; weight_kg 0 counts as a weighted
+// exercise (no weight entered yet) and keeps its stepper.
 class SetView extends WatchUi.View {
     const LB_PER_KG = 2.2046226f;
 
     private var mSession as WorkoutSession;
     private var mReps as Number;
     private var mVal as Float;          // weight in DISPLAY units (kg or lb)
-    private var mOrigKg as Float or Null;  // planned weight, logged verbatim
+    private var mOrigKg as Float or Null;  // pre-filled weight, logged verbatim
     private var mRange as Array or Null;   // planned rep_range [start, end]
     private var mShowWeight as Boolean;    // exercise plans weight at all
     private var mLast as Dictionary or Null;  // last session's matching set
     private var mIsLb as Boolean;
-    private var mHasWeight as Boolean;  // routine defined a weight
+    private var mHasWeight as Boolean;  // a weight value is pre-filled
     private var mTouchedW as Boolean;   // user adjusted the weight
     private var mTimer as Timer.Timer or Null;
     private var mPage as Number;        // 0 = steppers, 1 = Next/Back
 
     private var mW as Number;
     private var mH as Number;
-    // Page 0: two full-width stepper rows.
+    // Page 0: full-width stepper rows.
     private var mRowX0 as Number;
     private var mRowX1 as Number;
     private var mZoneW as Number;       // width of the -/+ tap zones
@@ -85,7 +89,7 @@ class SetView extends WatchUi.View {
         mIsLb = d.weightUnits == System.UNIT_STATUTE;
         mWeightLabel = mIsLb ? "LBS" : "KG";
         // Bodyweight exercise (no set plans a weight, and none was lifted last
-        // time either) -> no weight column at all.
+        // time either) -> no weight row at all.
         var lastKg = (mLast != null && mLast[:w] != null) ? mLast[:w].toFloat() : null;
         mShowWeight = session.exerciseHasWeight(session.exIndex) || lastKg != null;
         var kg = (set != null && set["weight_kg"] != null) ? set["weight_kg"].toFloat() : null;
@@ -168,8 +172,8 @@ class SetView extends WatchUi.View {
 
     function confirm() as Void {
         // Only a real user edit may change the logged weight — otherwise the
-        // planned value is passed through untouched (a kg->lb->kg round trip
-        // would silently rewrite 20.0 kg as 19.96 kg on statute devices).
+        // pre-filled value is passed through untouched (a kg->lb->kg round
+        // trip would silently rewrite 20.0 kg as 19.96 kg on statute devices).
         var kg = null;
         if (mTouchedW) {
             var raw = mIsLb ? (mVal / LB_PER_KG) : mVal;
@@ -201,7 +205,7 @@ class SetView extends WatchUi.View {
         if (mPage == 0) {
             if (y >= mHintY) { return :showNav; }
             var inReps = y >= mRepsTop - 8 && y <= mRepsBot + 8;
-            var inWgt = y >= mWgtTop - 8 && y <= mWgtBot + 8;
+            var inWgt = mShowWeight && y >= mWgtTop - 8 && y <= mWgtBot + 8;
             if (inReps || inWgt) {
                 if (x <= mRowX0 + mZoneW) { return inReps ? :repsDown : :kgDown; }
                 if (x >= mRowX1 - mZoneW) { return inReps ? :repsUp : :kgUp; }
@@ -245,18 +249,18 @@ class SetView extends WatchUi.View {
         // Header: elapsed + heart rate.
         Theme.drawHeader(dc, mW, mH, Theme.mmss(mSession.elapsedSeconds()), Vitals.heartRate());
 
-        // Title (auto-sized) + set counter.
+        // Title (auto-sized) + set counter. Vertically centred: the
+        // auto-picked font varies in height, and a top-anchored title would
+        // grow down into the counter line.
         var maxW = (mW * 0.64).toNumber();
         var exTitle = mSession.currentTitle();
         var tf = Theme.bestFont(dc, exTitle, maxW,
             [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
-        // Vertically centred: the auto-picked font varies in height, and a
-        // top-anchored title would grow down into the counter line.
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (mH * 0.165).toNumber(), tf, Theme.fit(dc, exTitle, maxW, tf),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         // Set counter, plus a reference: what was lifted last time (preferred,
-        // since the boxes are pre-filled from it) or the planned rep range.
+        // since the rows are pre-filled from it) or the planned rep range.
         var counter = mStrSet + " " + (mSession.setIndex + 1) + " / " + mSession.setCount(mSession.exIndex);
         if (mLast != null) {
             var ref = mStrLast + " ";
