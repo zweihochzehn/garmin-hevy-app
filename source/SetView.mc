@@ -5,12 +5,17 @@ import Toybox.Math;
 import Toybox.System;
 import Toybox.Timer;
 
-// Screen 2: one working set of a rep/weight exercise. Two boxes for REPS and
-// weight — tap the upper third to increase, the lower third to decrease — plus
-// a back circle and a blue "Next" pill. Laid out to stay inside the round
-// bezel. Weight is shown in the device unit (kg or lbs) and always logged to
-// Hevy in kg; bodyweight sets (null weight) stay weight-less unless the user
-// touches the stepper.
+// Screen 2: one working set of a rep/weight exercise, split into two swipe
+// pages so the stepper targets stay big and far away from the navigation:
+//   page 0 — full-width REPS and weight rows; tap the left zone to decrease,
+//            the right zone to increase. A chevron at the bottom hints at
+//            the second page (swipe up or tap it).
+//   page 1 — large Next and Back pills, stacked with plenty of air between
+//            them (swipe down or tap the top chevron to return).
+// Weight is shown in the device unit (kg or lbs) and always logged to Hevy in
+// kg. Bodyweight sets (null weight_kg) get a reps-only layout and never log a
+// weight; weight_kg 0 counts as a weighted exercise (no weight entered yet)
+// and keeps its stepper.
 class SetView extends WatchUi.View {
     const LB_PER_KG = 2.2046226f;
 
@@ -25,24 +30,30 @@ class SetView extends WatchUi.View {
     private var mHasWeight as Boolean;  // routine defined a weight
     private var mTouchedW as Boolean;   // user adjusted the weight
     private var mTimer as Timer.Timer or Null;
+    private var mPage as Number;        // 0 = steppers, 1 = Next/Back
 
     private var mW as Number;
     private var mH as Number;
-    private var mRepsCx as Number;
-    private var mKgCx as Number;
-    private var mBoxTop as Number;
-    private var mBoxBot as Number;
-    private var mBoxHalfW as Number;
-    private var mThird as Number;
-    private var mBackCx as Number;
-    private var mBackCy as Number;
-    private var mBackR as Number;
-    private var mNextX0 as Number;
-    private var mNextX1 as Number;
+    // Page 0: two full-width stepper rows.
+    private var mRowX0 as Number;
+    private var mRowX1 as Number;
+    private var mZoneW as Number;       // width of the -/+ tap zones
+    private var mRepsTop as Number;
+    private var mRepsBot as Number;
+    private var mWgtTop as Number;
+    private var mWgtBot as Number;
+    private var mHintY as Number;       // below this a tap opens page 1
+    // Page 1: stacked nav pills.
+    private var mPillX0 as Number;
+    private var mPillX1 as Number;
     private var mNextY0 as Number;
     private var mNextY1 as Number;
+    private var mBackY0 as Number;
+    private var mBackY1 as Number;
+    private var mTopHintY as Number;    // above this a tap returns to page 0
     private var mStrSet as String;
     private var mStrNext as String;
+    private var mStrBack as String;
     private var mWeightLabel as String;
     private var mStrReps as String;
     private var mStrLast as String;
@@ -117,6 +128,7 @@ class SetView extends WatchUi.View {
         mNextY1 = (mH * 0.86).toNumber();
         mStrSet = WatchUi.loadResource(Rez.Strings.SetWord) as String;
         mStrNext = WatchUi.loadResource(Rez.Strings.NextLabel) as String;
+        mStrBack = WatchUi.loadResource(Rez.Strings.BackLabel) as String;
         mStrReps = WatchUi.loadResource(Rez.Strings.RepsLabel) as String;
         mStrLast = WatchUi.loadResource(Rez.Strings.LastLabel) as String;
     }
@@ -173,41 +185,58 @@ class SetView extends WatchUi.View {
             WatchUi.SLIDE_RIGHT);
     }
 
+    function showNavPage() as Void {
+        if (mPage != 1) { mPage = 1; WatchUi.requestUpdate(); }
+    }
+
+    function showStepperPage() as Void {
+        if (mPage != 0) { mPage = 0; WatchUi.requestUpdate(); }
+    }
+
     // Returns the tapped zone symbol, or null.
     function hit(x as Number, y as Number) as Symbol or Null {
-        var dxb = x - mBackCx;
-        var dyb = y - mBackCy;
-        if ((dxb * dxb + dyb * dyb) <= (mBackR + 8) * (mBackR + 8)) { return :back; }
-        if (x >= mNextX0 && x <= mNextX1 && y >= mNextY0 && y <= mNextY1) { return :next; }
-        if (y >= mBoxTop && y <= mBoxBot) {
-            var top = y < mBoxTop + mThird;
-            var bot = y > mBoxBot - mThird;
-            if (x >= mRepsCx - mBoxHalfW && x <= mRepsCx + mBoxHalfW) {
-                if (top) { return :repsUp; }
-                if (bot) { return :repsDown; }
+        if (mPage == 0) {
+            if (y >= mHintY) { return :showNav; }
+            var inReps = y >= mRepsTop - 8 && y <= mRepsBot + 8;
+            var inWgt = mHasWeight && y >= mWgtTop - 8 && y <= mWgtBot + 8;
+            if (inReps || inWgt) {
+                if (x <= mRowX0 + mZoneW) { return inReps ? :repsDown : :kgDown; }
+                if (x >= mRowX1 - mZoneW) { return inReps ? :repsUp : :kgUp; }
             }
-            if (x >= mKgCx - mBoxHalfW && x <= mKgCx + mBoxHalfW) {
-                if (top) { return :kgUp; }
-                if (bot) { return :kgDown; }
-            }
+            return null;
+        }
+        if (y <= mTopHintY) { return :showSteppers; }
+        if (x >= mPillX0 - 10 && x <= mPillX1 + 10) {
+            if (y >= mNextY0 - 10 && y <= mNextY1 + 10) { return :next; }
+            if (y >= mBackY0 - 10 && y <= mBackY1 + 10) { return :back; }
         }
         return null;
     }
 
     function handle(zone as Symbol) as Void {
         switch (zone) {
-            case :repsUp:   bumpReps(1);        break;
-            case :repsDown: bumpReps(-1);       break;
-            case :kgUp:     bumpWeight(2.5);    break;
-            case :kgDown:   bumpWeight(-2.5);   break;
-            case :next:     confirm();          break;
-            case :back:     goBackToList();     break;
+            case :repsUp:       bumpReps(1);        break;
+            case :repsDown:     bumpReps(-1);       break;
+            case :kgUp:         bumpWeight(2.5);    break;
+            case :kgDown:       bumpWeight(-2.5);   break;
+            case :next:         confirm();          break;
+            case :back:         goBackToList();     break;
+            case :showNav:      showNavPage();      break;
+            case :showSteppers: showStepperPage();  break;
         }
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Theme.FG, Theme.BG);
         dc.clear();
+        if (mPage == 0) {
+            drawStepperPage(dc);
+        } else {
+            drawNavPage(dc);
+        }
+    }
+
+    function drawStepperPage(dc as Graphics.Dc) as Void {
         var cx = mW / 2;
 
         // Header: elapsed + heart rate.
@@ -259,39 +288,85 @@ class SetView extends WatchUi.View {
             drawBox(dc, mKgCx, (mHasWeight || mTouchedW) ? Theme.weight(mVal) : "–");
         }
 
-        // Back circle.
+    // One full-width stepper row: [ − | label/value | + ].
+    function drawRow(dc as Graphics.Dc, top as Number, bot as Number, label as String, value as String) as Void {
+        var cx = mW / 2;
+        var w = mRowX1 - mRowX0;
+        var h = bot - top;
+        var cy = top + h / 2;
         dc.setColor(Theme.BOX, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(mBackCx, mBackCy, mBackR);
-        Theme.drawBackChevron(dc, mBackCx + 2, mBackCy, (mBackR * 0.7).toNumber(), Theme.FG);
-        // Next pill.
+        dc.fillRoundedRectangle(mRowX0, top, w, h, 16);
+        dc.setColor(Theme.LINE, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRoundedRectangle(mRowX0, top, w, h, 16);
+        // Dividers make the tap zones visible.
+        dc.drawLine(mRowX0 + mZoneW, top + 10, mRowX0 + mZoneW, bot - 10);
+        dc.drawLine(mRowX1 - mZoneW, top + 10, mRowX1 - mZoneW, bot - 10);
+
+        // − / + fill the side zones (blue = tappable).
         dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);
-        var nh = mNextY1 - mNextY0;
-        dc.fillRoundedRectangle(mNextX0, mNextY0, mNextX1 - mNextX0, nh, nh / 2);
+        dc.drawText(mRowX0 + mZoneW / 2, cy, Graphics.FONT_LARGE, "–",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(mRowX1 - mZoneW / 2, cy, Graphics.FONT_LARGE, "+",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Label above the value in the middle zone.
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top + 16, Graphics.FONT_XTINY, label,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var maxW = w - 2 * mZoneW - 12;
+        var vf = Theme.bestFont(dc, value, maxW,
+            [Graphics.FONT_NUMBER_MILD, Graphics.FONT_SMALL, Graphics.FONT_XTINY]);
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((mNextX0 + mNextX1) / 2, (mNextY0 + mNextY1) / 2, Graphics.FONT_SMALL, mStrNext,
+        dc.drawText(cx, top + (h * 0.62).toNumber(), vf, value,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    function drawBox(dc as Graphics.Dc, cx as Number, value as String) as Void {
-        var x = cx - mBoxHalfW;
-        var w = mBoxHalfW * 2;
-        var h = mBoxBot - mBoxTop;
+    function drawNavPage(dc as Graphics.Dc) as Void {
+        var cx = mW / 2;
+
+        // Hint: the steppers live one swipe above.
+        Theme.drawUpChevron(dc, cx, (mH * 0.085).toNumber(), (mW * 0.06).toNumber(), Theme.MUTED);
+
+        // Context: which set is confirmed with which values.
+        var maxW = (mW * 0.60).toNumber();
+        var exTitle = mSession.currentTitle();
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (mH * 0.15).toNumber(), Graphics.FONT_XTINY,
+            Theme.fit(dc, exTitle, maxW, Graphics.FONT_XTINY),
+            Graphics.TEXT_JUSTIFY_CENTER);
+        var summary = "";
+        if (mHasWeight || mTouchedW) {
+            summary = mReps.format("%d") + " × " + Theme.weight(mVal) + " " + mWeightLabel;
+        } else {
+            summary = mReps.format("%d") + " " + mStrReps;
+        }
+        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (mH * 0.215).toNumber(), Graphics.FONT_SMALL, summary,
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Next pill (primary).
+        var nh = mNextY1 - mNextY0;
+        dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(mPillX0, mNextY0, mPillX1 - mPillX0, nh, nh / 2);
+        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, mNextY0 + nh / 2, Graphics.FONT_MEDIUM, mStrNext,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Back pill (secondary): chevron + label.
+        var bh = mBackY1 - mBackY0;
+        var bcy = mBackY0 + bh / 2;
         dc.setColor(Theme.BOX, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x, mBoxTop, w, h, 16);
+        dc.fillRoundedRectangle(mPillX0, mBackY0, mPillX1 - mPillX0, bh, bh / 2);
         dc.setColor(Theme.LINE, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawRoundedRectangle(x, mBoxTop, w, h, 16);
-
-        // + / - pinned to the top and bottom edges of the box (blue = tappable).
-        dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, mBoxTop + 20, Graphics.FONT_SMALL, "+", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(cx, mBoxBot - 20, Graphics.FONT_SMALL, "–", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        // Value centered, auto-shrinking so 102.5 etc. never clips the box.
-        var vf = Theme.bestFont(dc, value, w - 14,
-            [Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_NUMBER_MILD, Graphics.FONT_SMALL]);
+        dc.drawRoundedRectangle(mPillX0, mBackY0, mPillX1 - mPillX0, bh, bh / 2);
+        var bw = dc.getTextWidthInPixels(mStrBack, Graphics.FONT_SMALL);
+        var left = cx - (bw + 26) / 2;
+        Theme.drawBackChevron(dc, left + 8, bcy, 16, Theme.FG);
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mBoxTop + mBoxBot) / 2, vf, value,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(left + 26, bcy, Graphics.FONT_SMALL, mStrBack,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }
 
@@ -312,11 +387,15 @@ class SetDelegate extends WatchUi.InputDelegate {
 
     // The system back-swipe must go through the same exit path as the physical
     // back key — otherwise the session and the recording would be orphaned.
+    // Up/down swipes page between the steppers and the Next/Back pills.
     function onSwipe(evt as WatchUi.SwipeEvent) as Boolean {
-        if (evt.getDirection() == WatchUi.SWIPE_RIGHT) {
+        var dir = evt.getDirection();
+        if (dir == WatchUi.SWIPE_RIGHT) {
             mView.goBackToList();
             return true;
         }
+        if (dir == WatchUi.SWIPE_UP) { mView.showNavPage(); return true; }
+        if (dir == WatchUi.SWIPE_DOWN) { mView.showStepperPage(); return true; }
         return false;
     }
 

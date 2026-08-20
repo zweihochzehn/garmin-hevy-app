@@ -21,6 +21,7 @@
     <string id="TargetWord">Ziel</string>
     <string id="DistanceTag">DISTANZ</string>
     <string id="NextLabel">Weiter</string>
+    <string id="BackLabel">Zurück</string>
     <string id="RepsLabel">WDH</string>
     <string id="LastLabel">zuletzt</string>
 

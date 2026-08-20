@@ -3,11 +3,19 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Timer;
+import Toybox.Attention;
 
 // Screen 3: a time-based set (Plank) or distance-based set (Running, Farmers
-// Walk). Shows a stopwatch with a green play/pause control and a Next pill.
-// Duration sets count toward the planned duration; distance sets show the
-// planned distance and pass it through to the Hevy log unchanged.
+// Walk), split into two swipe pages like SetView so the controls stay big and
+// far away from the navigation:
+//   page 0 — stopwatch with a large centered play/pause control. A chevron at
+//            the bottom hints at the second page (swipe up or tap it).
+//   page 1 — large Next and Back pills plus a summary of what gets logged
+//            (swipe down or tap the top chevron to return).
+// The stopwatch does NOT stop at the planned duration — it buzzes once and
+// keeps counting, so going past the plan is possible; the elapsed value the
+// user pauses/confirms at is what gets logged. Distance sets show the planned
+// distance and pass it through to the Hevy log unchanged.
 class DurationSetView extends WatchUi.View {
     private var mSession as WorkoutSession;
     private var mTarget as Number;          // planned duration (0 = none)
@@ -15,18 +23,26 @@ class DurationSetView extends WatchUi.View {
     private var mElapsed as Number;
     private var mRunning as Boolean;
     private var mTimer as Timer.Timer or Null;
+    private var mPage as Number;            // 0 = stopwatch, 1 = Next/Back
 
     private var mW as Number;
     private var mH as Number;
+    // Page 0: timer box + play circle.
     private var mPlayCx as Number;
     private var mPlayCy as Number;
     private var mPlayR as Number;
-    private var mNextX0 as Number;
-    private var mNextX1 as Number;
+    private var mHintY as Number;           // below this a tap opens page 1
+    // Page 1: stacked nav pills.
+    private var mPillX0 as Number;
+    private var mPillX1 as Number;
     private var mNextY0 as Number;
     private var mNextY1 as Number;
+    private var mBackY0 as Number;
+    private var mBackY1 as Number;
+    private var mTopHintY as Number;        // above this a tap returns to page 0
     private var mStrSet as String;
     private var mStrNext as String;
+    private var mStrBack as String;
     private var mStrTarget as String;
     private var mTag as String;
 
@@ -39,19 +55,25 @@ class DurationSetView extends WatchUi.View {
         mDistance = (set != null) ? set["distance_meters"] : null;
         mElapsed = 0;
         mRunning = false;
+        mPage = 0;
 
         var d = System.getDeviceSettings();
         mW = d.screenWidth;
         mH = d.screenHeight;
-        mPlayCx = (mW * 0.29).toNumber();
-        mPlayCy = (mH * 0.795).toNumber();
-        mPlayR = (mW * 0.082).toNumber();
-        mNextX0 = (mW * 0.42).toNumber();
-        mNextX1 = (mW * 0.82).toNumber();
-        mNextY0 = (mH * 0.745).toNumber();
-        mNextY1 = (mH * 0.86).toNumber();
+        mPlayCx = (mW * 0.5).toNumber();
+        mPlayCy = (mH * 0.68).toNumber();
+        mPlayR = (mW * 0.105).toNumber();
+        mHintY = (mH * 0.84).toNumber();
+        mPillX0 = (mW * 0.18).toNumber();
+        mPillX1 = (mW * 0.82).toNumber();
+        mNextY0 = (mH * 0.32).toNumber();
+        mNextY1 = (mH * 0.50).toNumber();
+        mBackY0 = (mH * 0.60).toNumber();
+        mBackY1 = (mH * 0.78).toNumber();
+        mTopHintY = (mH * 0.16).toNumber();
         mStrSet = WatchUi.loadResource(Rez.Strings.SetWord) as String;
         mStrNext = WatchUi.loadResource(Rez.Strings.NextLabel) as String;
+        mStrBack = WatchUi.loadResource(Rez.Strings.BackLabel) as String;
         mStrTarget = WatchUi.loadResource(Rez.Strings.TargetWord) as String;
         mTag = WatchUi.loadResource(
             (mDistance != null) ? Rez.Strings.DistanceTag : Rez.Strings.DurationTag) as String;
@@ -71,7 +93,12 @@ class DurationSetView extends WatchUi.View {
     function onTick() as Void {
         if (mRunning) {
             mElapsed += 1;
-            if (mTarget > 0 && mElapsed >= mTarget) { mRunning = false; }
+            // Reaching the planned duration only buzzes — the timer keeps
+            // running so the user can go past the plan; whatever they pause
+            // (or confirm) at is what gets logged.
+            if (mTarget > 0 && mElapsed == mTarget && (Attention has :vibrate)) {
+                Attention.vibrate([new Attention.VibeProfile(80, 300)]);
+            }
         }
         WatchUi.requestUpdate();
     }
@@ -99,22 +126,51 @@ class DurationSetView extends WatchUi.View {
             WatchUi.SLIDE_RIGHT);
     }
 
+    function showNavPage() as Void {
+        if (mPage != 1) { mPage = 1; WatchUi.requestUpdate(); }
+    }
+
+    function showStepperPage() as Void {
+        if (mPage != 0) { mPage = 0; WatchUi.requestUpdate(); }
+    }
+
     function hit(x as Number, y as Number) as Symbol or Null {
-        var dx = x - mPlayCx;
-        var dy = y - mPlayCy;
-        if ((dx * dx + dy * dy) <= (mPlayR + 8) * (mPlayR + 8)) { return :play; }
-        if (x >= mNextX0 && x <= mNextX1 && y >= mNextY0 && y <= mNextY1) { return :next; }
+        if (mPage == 0) {
+            if (y >= mHintY) { return :showNav; }
+            var dx = x - mPlayCx;
+            var dy = y - mPlayCy;
+            if ((dx * dx + dy * dy) <= (mPlayR + 8) * (mPlayR + 8)) { return :play; }
+            return null;
+        }
+        if (y <= mTopHintY) { return :showSteppers; }
+        if (x >= mPillX0 - 10 && x <= mPillX1 + 10) {
+            if (y >= mNextY0 - 10 && y <= mNextY1 + 10) { return :next; }
+            if (y >= mBackY0 - 10 && y <= mBackY1 + 10) { return :back; }
+        }
         return null;
     }
 
     function handle(zone as Symbol) as Void {
-        if (zone == :play) { togglePlay(); }
-        else if (zone == :next) { confirm(); }
+        switch (zone) {
+            case :play:         togglePlay();       break;
+            case :next:         confirm();          break;
+            case :back:         goBackToList();     break;
+            case :showNav:      showNavPage();      break;
+            case :showSteppers: showStepperPage();  break;
+        }
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Theme.FG, Theme.BG);
         dc.clear();
+        if (mPage == 0) {
+            drawStopwatchPage(dc);
+        } else {
+            drawNavPage(dc);
+        }
+    }
+
+    function drawStopwatchPage(dc as Graphics.Dc) as Void {
         var cx = mW / 2;
 
         // Elapsed workout time up top; the pulse gets its own prominent row
@@ -143,7 +199,9 @@ class DurationSetView extends WatchUi.View {
         dc.setColor(mRunning ? Theme.GREEN : Theme.LINE, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawRoundedRectangle(bx, by, boxW, boxH, 14);
-        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        // Green once the planned duration is met — the timer keeps counting.
+        dc.setColor((mTarget > 0 && mElapsed >= mTarget) ? Theme.GREEN : Theme.FG,
+            Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, by + boxH / 2, Graphics.FONT_NUMBER_MEDIUM, Theme.mmss(mElapsed),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
@@ -182,13 +240,56 @@ class DurationSetView extends WatchUi.View {
             ]);
         }
 
-        // Next pill.
-        dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);
-        var nh = mNextY1 - mNextY0;
-        dc.fillRoundedRectangle(mNextX0, mNextY0, mNextX1 - mNextX0, nh, nh / 2);
+        // Hint: Next/Back live one swipe below.
+        Theme.drawDownChevron(dc, cx, (mH * 0.92).toNumber(), (mW * 0.06).toNumber(), Theme.MUTED);
+    }
+
+    function drawNavPage(dc as Graphics.Dc) as Void {
+        var cx = mW / 2;
+
+        // Hint: the stopwatch lives one swipe above.
+        Theme.drawUpChevron(dc, cx, (mH * 0.085).toNumber(), (mW * 0.06).toNumber(), Theme.MUTED);
+
+        // Context: which set is confirmed with which values.
+        var maxW = (mW * 0.60).toNumber();
+        var exTitle = mSession.currentTitle();
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (mH * 0.15).toNumber(), Graphics.FONT_XTINY,
+            Theme.fit(dc, exTitle, maxW, Graphics.FONT_XTINY),
+            Graphics.TEXT_JUSTIFY_CENTER);
+        var summary = "";
+        var secs = (mElapsed > 0) ? mElapsed : mTarget;
+        if (secs > 0) { summary = Theme.mmss(secs); }
+        if (mDistance != null) {
+            summary = (summary.length() > 0) ? summary + " · " + mDistance + " m" : mDistance + " m";
+        }
+        if (summary.length() == 0) { summary = Theme.mmss(0); }
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((mNextX0 + mNextX1) / 2, (mNextY0 + mNextY1) / 2, Graphics.FONT_SMALL, mStrNext,
+        dc.drawText(cx, (mH * 0.215).toNumber(), Graphics.FONT_SMALL, summary,
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Next pill (primary).
+        var nh = mNextY1 - mNextY0;
+        dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(mPillX0, mNextY0, mPillX1 - mPillX0, nh, nh / 2);
+        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, mNextY0 + nh / 2, Graphics.FONT_MEDIUM, mStrNext,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Back pill (secondary): chevron + label.
+        var bh = mBackY1 - mBackY0;
+        var bcy = mBackY0 + bh / 2;
+        dc.setColor(Theme.BOX, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(mPillX0, mBackY0, mPillX1 - mPillX0, bh, bh / 2);
+        dc.setColor(Theme.LINE, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRoundedRectangle(mPillX0, mBackY0, mPillX1 - mPillX0, bh, bh / 2);
+        var bw = dc.getTextWidthInPixels(mStrBack, Graphics.FONT_SMALL);
+        var left = cx - (bw + 26) / 2;
+        Theme.drawBackChevron(dc, left + 8, bcy, 16, Theme.FG);
+        dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + 26, bcy, Graphics.FONT_SMALL, mStrBack,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }
 
@@ -207,11 +308,17 @@ class DurationSetDelegate extends WatchUi.InputDelegate {
         return true;
     }
 
+    // The system back-swipe must go through the same exit path as the physical
+    // back key — otherwise the session and the recording would be orphaned.
+    // Up/down swipes page between the stopwatch and the Next/Back pills.
     function onSwipe(evt as WatchUi.SwipeEvent) as Boolean {
-        if (evt.getDirection() == WatchUi.SWIPE_RIGHT) {
+        var dir = evt.getDirection();
+        if (dir == WatchUi.SWIPE_RIGHT) {
             mView.goBackToList();
             return true;
         }
+        if (dir == WatchUi.SWIPE_UP) { mView.showNavPage(); return true; }
+        if (dir == WatchUi.SWIPE_DOWN) { mView.showStepperPage(); return true; }
         return false;
     }
 
