@@ -173,23 +173,27 @@ class DurationSetView extends WatchUi.View {
     function drawStopwatchPage(dc as Graphics.Dc) as Void {
         var cx = mW / 2;
 
+        // Elapsed workout time up top; the pulse gets its own prominent row
+        // below, since on rowing/plank work it is the metric you glance at.
+        Theme.drawHeader(dc, mW, mH, Theme.mmss(mSession.elapsedSeconds()), null);
+
         var maxW = (mW * 0.66).toNumber();
         var exTitle = mSession.currentTitle();
         var tf = Theme.bestFont(dc, exTitle, maxW,
             [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.15).toNumber(), tf, Theme.fit(dc, exTitle, maxW, tf),
+        dc.drawText(cx, (mH * 0.18).toNumber(), tf, Theme.fit(dc, exTitle, maxW, tf),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.225).toNumber(), Graphics.FONT_XTINY,
+        dc.drawText(cx, (mH * 0.25).toNumber(), Graphics.FONT_XTINY,
             mStrSet + " " + (mSession.setIndex + 1) + " / " + mSession.setCount(mSession.exIndex) + "  ·  " + mTag,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         // Timer box.
         var boxW = (mW * 0.5).toNumber();
-        var boxH = (mH * 0.20).toNumber();
+        var boxH = (mH * 0.19).toNumber();
         var bx = cx - boxW / 2;
-        var by = (mH * 0.30).toNumber();
+        var by = (mH * 0.31).toNumber();
         dc.setColor(Theme.BOX, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(bx, by, boxW, boxH, 14);
         dc.setColor(mRunning ? Theme.GREEN : Theme.LINE, Graphics.COLOR_TRANSPARENT);
@@ -210,9 +214,13 @@ class DurationSetView extends WatchUi.View {
         }
         if (target != null) {
             dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, by + boxH + 16, Graphics.FONT_XTINY, target,
+            dc.drawText(cx, by + boxH + 22, Graphics.FONT_XTINY, target,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
+
+        // Live pulse, large enough to read mid-effort.
+        Theme.drawHeartRate(dc, cx, (mH * 0.655).toNumber(), Vitals.heartRate(),
+            Graphics.FONT_NUMBER_MILD);
 
         // Play / pause circle with a drawn glyph (font arrows don't render).
         dc.setColor(Theme.GREEN, Graphics.COLOR_TRANSPARENT);

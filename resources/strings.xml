@@ -25,6 +25,7 @@
     <string id="NextLabel">Next</string>
     <string id="BackLabel">Back</string>
     <string id="RepsLabel">REPS</string>
+    <string id="LastLabel">last</string>
 
     <!-- Summary -->
     <string id="DoneTitle">Done!</string>

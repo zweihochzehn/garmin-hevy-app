@@ -94,8 +94,11 @@ class RestView extends WatchUi.View {
         dc.clear();
         var cx = mW / 2;
 
+        // Pulse during rest shows recovery, so it belongs on this screen too.
+        Theme.drawHeader(dc, mW, mH, Theme.mmss(mSession.elapsedSeconds()), Vitals.heartRate());
+
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.155).toNumber(), Graphics.FONT_XTINY, mStrRest,
+        dc.drawText(cx, (mH * 0.185).toNumber(), Graphics.FONT_XTINY, mStrRest,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         dc.setColor(Theme.BLUE, Graphics.COLOR_TRANSPARENT);

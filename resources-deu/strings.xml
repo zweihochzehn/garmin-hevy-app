@@ -23,6 +23,7 @@
     <string id="NextLabel">Weiter</string>
     <string id="BackLabel">Zurück</string>
     <string id="RepsLabel">WDH</string>
+    <string id="LastLabel">zuletzt</string>
 
     <string id="DoneTitle">Fertig!</string>
     <string id="SaveLabel">Speichern</string>

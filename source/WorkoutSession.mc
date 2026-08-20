@@ -111,6 +111,30 @@ class WorkoutSession {
         return set["duration_seconds"] != null && plannedReps(set) == null;
     }
 
+    // Planned reps can arrive either as a fixed `reps` value or as a
+    // `rep_range` ({start, end}) — Hevy routines commonly use the range for
+    // bodyweight work ("10-15 reps"). Returns [start, end] or null.
+    static function repRange(set as Dictionary) as Array or Null {
+        var r = set["rep_range"];
+        if (!(r instanceof Lang.Dictionary)) { return null; }
+        var s = r["start"];
+        var e = r["end"];
+        if (s == null && e == null) { return null; }
+        return [s, e];
+    }
+
+    // A whole exercise counts as bodyweight when no set plans a weight — the
+    // set screen then drops the weight column entirely.
+    function exerciseHasWeight(ei as Number) as Boolean {
+        var sets = (exercises[ei] as Dictionary)["sets"];
+        if (!(sets instanceof Lang.Array)) { return false; }
+        for (var i = 0; i < sets.size(); i++) {
+            var s = sets[i];
+            if (s instanceof Lang.Dictionary && s["weight_kg"] != null) { return true; }
+        }
+        return false;
+    }
+
     // Distance sets (e.g. Running, Farmers Walk) have distance_meters and no
     // reps; they run on the timer screen and the distance is passed through.
     static function isDistanceSet(set as Dictionary) as Boolean {
