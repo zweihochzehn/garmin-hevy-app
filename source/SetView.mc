@@ -29,6 +29,7 @@ class SetView extends WatchUi.View {
     private var mRange as Array or Null;   // planned rep_range [start, end]
     private var mShowWeight as Boolean;    // exercise plans weight at all
     private var mLast as Dictionary or Null;  // last session's matching set
+    private var mLastKg as Float or Null;     // its weight, 0-as-bodyweight cleaned
     private var mIsLb as Boolean;
     private var mHasWeight as Boolean;  // a weight value is pre-filled
     private var mTouchedW as Boolean;   // user adjusted the weight
@@ -89,9 +90,16 @@ class SetView extends WatchUi.View {
         mIsLb = d.weightUnits == System.UNIT_STATUTE;
         mWeightLabel = mIsLb ? "LBS" : "KG";
         // Bodyweight exercise (no set plans a weight, and none was lifted last
-        // time either) -> no weight row at all.
+        // time either) -> no weight row at all. Careful with the history:
+        // Hevy logs bodyweight sets with weight_kg 0 (not null), so a zero
+        // from a past workout on an exercise whose routine plans no weight
+        // means "no weight" — it must neither bring the weight row back nor
+        // be logged as 0 kg.
+        var plansWeight = session.exerciseHasWeight(session.exIndex);
         var lastKg = (mLast != null && mLast[:w] != null) ? mLast[:w].toFloat() : null;
-        mShowWeight = session.exerciseHasWeight(session.exIndex) || lastKg != null;
+        if (lastKg != null && lastKg == 0.0 && !plansWeight) { lastKg = null; }
+        mLastKg = lastKg;
+        mShowWeight = plansWeight || lastKg != null;
         var kg = (set != null && set["weight_kg"] != null) ? set["weight_kg"].toFloat() : null;
         if (lastKg != null) { kg = lastKg; }   // last session wins as the target
         mHasWeight = kg != null;
@@ -128,8 +136,8 @@ class SetView extends WatchUi.View {
         mHintY = (mH * 0.84).toNumber();
         mPillX0 = (mW * 0.18).toNumber();
         mPillX1 = (mW * 0.82).toNumber();
-        mNextY0 = (mH * 0.32).toNumber();
-        mNextY1 = (mH * 0.50).toNumber();
+        mNextY0 = (mH * 0.332).toNumber();   // ~5 px air below the summary line
+        mNextY1 = (mH * 0.512).toNumber();
         mBackY0 = (mH * 0.60).toNumber();
         mBackY1 = (mH * 0.78).toNumber();
         mTopHintY = (mH * 0.16).toNumber();
@@ -264,8 +272,8 @@ class SetView extends WatchUi.View {
         var counter = mStrSet + " " + (mSession.setIndex + 1) + " / " + mSession.setCount(mSession.exIndex);
         if (mLast != null) {
             var ref = mStrLast + " ";
-            if (mLast[:w] != null) {
-                var lw = mIsLb ? (mLast[:w].toFloat() * LB_PER_KG) : mLast[:w].toFloat();
+            if (mLastKg != null) {
+                var lw = mIsLb ? (mLastKg * LB_PER_KG) : mLastKg;
                 ref += Theme.weight(mIsLb ? quantize(lw, 0.5) : lw) + " " + mWeightLabel;
                 if (mLast[:r] != null) { ref += " × " + mLast[:r]; }
             } else if (mLast[:r] != null) {
@@ -282,7 +290,8 @@ class SetView extends WatchUi.View {
             if (rangeTxt != null) { counter = counter + "  ·  " + rangeTxt; }
         }
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (mH * 0.255).toNumber(), Graphics.FONT_XTINY, counter,
+        dc.drawText(cx, (mH * 0.255).toNumber(), Graphics.FONT_XTINY,
+            Theme.fit(dc, counter, (mW * 0.84).toNumber(), Graphics.FONT_XTINY),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         drawRow(dc, mRepsTop, mRepsBot, mStrReps, mReps.format("%d"));
