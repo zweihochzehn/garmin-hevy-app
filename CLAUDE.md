@@ -63,7 +63,8 @@ HevyWorkoutApp.mc   AppBase; holds the Recorder; onStop() saves/discards it;
 HevyApi.mc          Hevy REST (paged getRoutines, postWorkout), key storage +
                     normalization, errorText(code), pending-workout storage
 WorkoutSession.mc   state: exIndex/setIndex, per-set logged values, buildPayload()
-Flow.mc             showCurrentSet() / afterSetConfirmed() — the exercise↔rest loop
+Flow.mc             showCurrentSet() / afterSetConfirmed() / finishExerciseEarly()
+                    — the exercise↔rest loop
 Recorder.mc         Garmin ActivityRecording (STRENGTH_TRAINING) → Garmin Connect
 Vitals.mc           live HR / calories via Activity.getActivityInfo()
 Theme.mc            colors + drawing helpers (heart, chevron, check, header, fonts)
@@ -100,6 +101,12 @@ SampleData.mc       bundled "Chest day" demo routine (fake template ids)
   weight is logged verbatim from the routine (no kg→lb→kg round trip); distance
   sets carry `distance_meters` through and go to the timer screen. What the
   screen shows is exactly what gets logged. ADR-0009.
+- **An exercise can be finished early.** "Finish exercise" (muted text at the
+  bottom of the Next/Back page, Set AND Duration screens) marks the exercise
+  skipped in the session: logged sets stay, the remaining sets are never
+  logged or invented, `firstIncomplete()` moves past the exercise (straight to
+  the summary when nothing else is open), and re-opening it from the exercise
+  list resumes it (`jumpToExercise` clears the flag).
 - **A finished set is never only in memory.** Anything that ends a workout must
   keep the logged sets: the summary persists them (`HevyApi.savePending`, a
   queue keyed by `start_time`), backing out of the exercise list routes to the

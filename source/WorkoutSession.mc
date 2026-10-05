@@ -17,6 +17,7 @@ class WorkoutSession {
     public var setIndex as Number;
     public var startMoment as Time.Moment;
     private var done as Array;                   // done[ei][si] = Dictionary or null
+    private var mSkippedEx as Array;             // skipped[ei]: exercise finished early
     private var mDemo as Boolean;
 
     function initialize(routine as Dictionary) {
@@ -29,11 +30,13 @@ class WorkoutSession {
         setIndex = 0;
         startMoment = Time.now();
         done = [];
+        mSkippedEx = [];
         for (var i = 0; i < exercises.size(); i++) {
             var n = setCount(i);
             var row = new [n];
             for (var j = 0; j < n; j++) { row[j] = null; }
             done.add(row);
+            mSkippedEx.add(false);
         }
         // Start at the first set of the first exercise.
         var f = firstIncomplete();
@@ -141,10 +144,36 @@ class WorkoutSession {
         return set["distance_meters"] != null && plannedReps(set) == null;
     }
 
+    // The user ended this exercise early: its logged sets stay, the remaining
+    // ones leave the guided loop (firstIncomplete skips the whole exercise).
+    // Nothing is invented or logged for them. Opening the exercise from the
+    // list again resumes it (jumpToExercise clears the flag).
+    function finishExerciseEarly(ei as Number) as Void {
+        mSkippedEx[ei] = true;
+    }
+
+    // Where the guided loop continues after a confirmed set: the next open set
+    // of the CURRENT exercise (the user may have started with exercise 3 —
+    // finish that one first), else the first open set in routine order.
+    function nextIncomplete() as Array or Null {
+        if (exIndex < exercises.size() && !mSkippedEx[exIndex]) {
+            var row = done[exIndex] as Array;
+            for (var si = setIndex + 1; si < row.size(); si++) {
+                if (row[si] == null) { return [exIndex, si]; }
+            }
+            for (var sj = 0; sj <= setIndex && sj < row.size(); sj++) {
+                if (row[sj] == null) { return [exIndex, sj]; }
+            }
+        }
+        return firstIncomplete();
+    }
+
     // First incomplete set in routine order, or null when all are done.
-    // Empty exercises have no slots and are skipped naturally.
+    // Empty exercises have no slots and are skipped naturally; exercises the
+    // user finished early are skipped deliberately.
     function firstIncomplete() as Array or Null {
         for (var ei = 0; ei < exercises.size(); ei++) {
+            if (mSkippedEx[ei]) { continue; }
             var row = done[ei] as Array;
             for (var si = 0; si < row.size(); si++) {
                 if (row[si] == null) { return [ei, si]; }
@@ -154,9 +183,11 @@ class WorkoutSession {
     }
 
     // Point the cursor at a specific exercise's first incomplete set (used when
-    // the user taps an exercise in the list). Falls back to set 0.
+    // the user taps an exercise in the list). Falls back to set 0. Re-opening
+    // an exercise that was finished early resumes it.
     function jumpToExercise(ei as Number) as Void {
         exIndex = ei;
+        mSkippedEx[ei] = false;
         var row = done[ei] as Array;
         for (var si = 0; si < row.size(); si++) {
             if (row[si] == null) { setIndex = si; return; }
