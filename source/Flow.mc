@@ -32,11 +32,12 @@ module Flow {
     }
 
     // Called after the user confirms a set (the view has already logged it).
-    // Advances to the next incomplete set, inserting a rest screen when the
-    // just-finished exercise defines a rest period.
+    // Advances to the next incomplete set — staying in the current exercise
+    // until it is done — inserting a rest screen when the just-finished
+    // exercise defines a rest period.
     function afterSetConfirmed(session as WorkoutSession) as Void {
         var restEx = session.currentExercise();
-        var nxt = session.firstIncomplete();
+        var nxt = session.nextIncomplete();
         if (nxt == null) {
             showSummary(session);
             return;

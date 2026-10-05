@@ -152,6 +152,22 @@ class WorkoutSession {
         mSkippedEx[ei] = true;
     }
 
+    // Where the guided loop continues after a confirmed set: the next open set
+    // of the CURRENT exercise (the user may have started with exercise 3 —
+    // finish that one first), else the first open set in routine order.
+    function nextIncomplete() as Array or Null {
+        if (exIndex < exercises.size() && !mSkippedEx[exIndex]) {
+            var row = done[exIndex] as Array;
+            for (var si = setIndex + 1; si < row.size(); si++) {
+                if (row[si] == null) { return [exIndex, si]; }
+            }
+            for (var sj = 0; sj <= setIndex && sj < row.size(); sj++) {
+                if (row[sj] == null) { return [exIndex, sj]; }
+            }
+        }
+        return firstIncomplete();
+    }
+
     // First incomplete set in routine order, or null when all are done.
     // Empty exercises have no slots and are skipped naturally; exercises the
     // user finished early are skipped deliberately.
