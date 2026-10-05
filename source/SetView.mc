@@ -55,9 +55,11 @@ class SetView extends WatchUi.View {
     private var mBackY0 as Number;
     private var mBackY1 as Number;
     private var mTopHintY as Number;    // above this a tap returns to page 0
+    private var mFinishY as Number;     // below this (nav page) finishes the exercise
     private var mStrSet as String;
     private var mStrNext as String;
     private var mStrBack as String;
+    private var mStrFinish as String;
     private var mWeightLabel as String;
     private var mStrReps as String;
     private var mStrLast as String;
@@ -141,9 +143,11 @@ class SetView extends WatchUi.View {
         mBackY0 = (mH * 0.60).toNumber();
         mBackY1 = (mH * 0.78).toNumber();
         mTopHintY = (mH * 0.16).toNumber();
+        mFinishY = (mH * 0.82).toNumber();
         mStrSet = WatchUi.loadResource(Rez.Strings.SetWord) as String;
         mStrNext = WatchUi.loadResource(Rez.Strings.NextLabel) as String;
         mStrBack = WatchUi.loadResource(Rez.Strings.BackLabel) as String;
+        mStrFinish = WatchUi.loadResource(Rez.Strings.FinishExLabel) as String;
         mStrReps = WatchUi.loadResource(Rez.Strings.RepsLabel) as String;
         mStrLast = WatchUi.loadResource(Rez.Strings.LastLabel) as String;
     }
@@ -221,6 +225,7 @@ class SetView extends WatchUi.View {
             return null;
         }
         if (y <= mTopHintY) { return :showSteppers; }
+        if (y >= mFinishY) { return :finishEx; }
         if (x >= mPillX0 - 10 && x <= mPillX1 + 10) {
             if (y >= mNextY0 - 10 && y <= mNextY1 + 10) { return :next; }
             if (y >= mBackY0 - 10 && y <= mBackY1 + 10) { return :back; }
@@ -236,6 +241,7 @@ class SetView extends WatchUi.View {
             case :kgDown:       bumpWeight(-2.5);   break;
             case :next:         confirm();          break;
             case :back:         goBackToList();     break;
+            case :finishEx:     Flow.finishExerciseEarly(mSession); break;
             case :showNav:      showNavPage();      break;
             case :showSteppers: showStepperPage();  break;
         }
@@ -383,6 +389,13 @@ class SetView extends WatchUi.View {
         dc.setColor(Theme.FG, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + 26, bcy, Graphics.FONT_SMALL, mStrBack,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Finish-exercise action: logged sets stay, the rest of the exercise
+        // is skipped. Text-only and muted — a deliberate, out-of-the-way target.
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (mH * 0.875).toNumber(), Graphics.FONT_XTINY,
+            Theme.fit(dc, mStrFinish, (mW * 0.60).toNumber(), Graphics.FONT_XTINY),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }
 

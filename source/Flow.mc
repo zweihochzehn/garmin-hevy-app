@@ -53,6 +53,22 @@ module Flow {
         }
     }
 
+    // The user ends the current exercise early ("Finish exercise" on the nav
+    // page): logged sets stay logged, the remaining sets are skipped, and the
+    // loop moves on to the next open exercise — or to the summary when none
+    // is left. No rest screen: nothing was just performed.
+    function finishExerciseEarly(session as WorkoutSession) as Void {
+        session.finishExerciseEarly(session.exIndex);
+        var nxt = session.firstIncomplete();
+        if (nxt == null) {
+            showSummary(session);
+            return;
+        }
+        session.exIndex = nxt[0];
+        session.setIndex = nxt[1];
+        showCurrentSet(session);
+    }
+
     function showSummary(session as WorkoutSession) as Void {
         var sv = new SummaryView(session);
         WatchUi.switchToView(sv, new SummaryDelegate(sv), WatchUi.SLIDE_LEFT);

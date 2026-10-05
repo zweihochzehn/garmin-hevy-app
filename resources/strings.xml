@@ -26,6 +26,7 @@
     <string id="BackLabel">Back</string>
     <string id="RepsLabel">REPS</string>
     <string id="LastLabel">last</string>
+    <string id="FinishExLabel">Finish exercise</string>
 
     <!-- Summary -->
     <string id="DoneTitle">Done!</string>
